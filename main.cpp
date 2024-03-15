@@ -20,18 +20,19 @@ uint64_t unix_time() {
     ).count();
 }
 
+enum BookSide {bid = 1, ask = 2};
 enum Side {buy = 1, sell = 2};
 enum OrderType {market = 1, limit = 2};
 
 class Order{
 	int quantity;
 	double price;
-	Side side;
+	BookSide side;
 	uint64_t timestamp = unix_time(); // Set timestamp of order
 
 	public:
 	// Constructor
-	Order(int quantity_, double price_, Side side_){
+	Order(int quantity_, double price_, BookSide side_){
 		quantity = quantity_;
 		price = price_;
 		side = side_;
@@ -55,6 +56,15 @@ class Orderbook{
 	map<double, vector<unique_ptr<Order>>, greater<double>> asks; // timestamp, Price, Qty
 
 	public:
+	// Adds order to book
+	void add_order(int qty, double price, BookSide side){
+		if(side == bid){
+			bids[price].push_back(make_unique<Order>(qty, price, side));
+		}else{
+			asks[price].push_back(make_unique<Order>(qty, price, side));
+		}
+	}
+
 	Orderbook(){
 		// seed RNG
 		srand (time(NULL)); 
@@ -65,18 +75,18 @@ class Orderbook{
 			int random_qty = rand() % 50 + 1; 
 			int random_qty2 = rand() % 50 + 1;
 			
-			bids[random_price].push_back(make_unique<Order>(random_qty, random_price, Side::buy));
+			add_order(random_qty, random_price, BookSide::bid);
 			this_thread::sleep_for(chrono::milliseconds(1)); // Sleep for a millisecond so the orders have different timestamps
-			bids[random_price].push_back(make_unique<Order>(random_qty2, random_price, Side::buy));
+			add_order(random_qty2, random_price, BookSide::bid);
 		}
 		for (int i=0; i<5; i++){
 			double random_price = 100.0 + (rand() % 1001) / 100.0;
 			int random_qty = rand() % 50 + 1; 
 			int random_qty2 = rand() % 50 + 1; 			
 			
-			asks[random_price].push_back(make_unique<Order>(random_qty, random_price, Side::sell));
+			add_order(random_qty, random_price, BookSide::ask);
 			this_thread::sleep_for(chrono::milliseconds(1)); // Sleep for a millisecond so the orders have different timestamps
-			asks[random_price].push_back(make_unique<Order>(random_qty2, random_price, Side::sell));
+			add_order(random_qty2, random_price, BookSide::ask);
 		}
 	}
 
@@ -99,65 +109,107 @@ class Orderbook{
 
 	// Return avg fill price and qty
 	tuple<int,double> execute_order(OrderType type, int order_quantity, Side side, double price = 0){
+		// Analytics 
+		int units_transacted = 0;
+		double total_value = 0;
+
+		auto process = [&] (auto& offers, Side side) {
+			for(auto rit = offers.rbegin(); rit != offers.rend();) {
+				auto& pair = *rit; // Dereference iterator to get the key-value pair
+				double price_level = pair.first;
+
+				cout << "Price level: " << price_level << endl;
+				
+				auto& quotes = pair.second; // Vect of objects
+				// sort(quotes.begin(), quotes.end()); // TODO: Sort quotes in ascending order by timestamp
+
+				// Ensure agreeable price for limit order
+				bool can_transact = true; 
+				if (type == limit){
+					if (side == buy && price_level > price){
+						cout << "Cannot BUY at this price level" << endl;
+						can_transact = false;
+					}else if(side == sell && price_level < price){
+						cout << "Cannot SELL at this price level" << endl;
+						can_transact = false;
+					}
+				}
+
+				// lift/hit as many levels as needed until qty filled
+				auto it = quotes.begin();
+				while(it != quotes.end() && order_quantity > 0 && can_transact){
+					int quote_qty = (*it)->get_quantity();
+					if(quote_qty > order_quantity){
+						// cout << "Filling part of order"<<endl;
+
+						units_transacted += order_quantity;
+						total_value += order_quantity * pair.first;
+
+						// Fill part of this order and break
+						(*it)->set_quantity(quote_qty-order_quantity);
+						quote_qty -= order_quantity;
+						order_quantity = 0;
+						break;
+					}else{
+						// cout << "Filling entire order"<<endl;
+						
+						units_transacted += quote_qty;
+						total_value += quote_qty * price_level;
+						
+						// delete order from book and on
+						order_quantity -= quote_qty;
+						it = quotes.erase(it);
+					}
+				}
+				rit++;
+			}
+			remove_empty_keys();
+			return make_tuple(units_transacted, total_value);
+		};
+		
 		// market order
 		if (type == market) {
+
+			return (side == sell) ? process(bids, Side::sell) : process(asks, Side::buy);
+
+		} else if(type == limit) {
 			// Analytics 
 			int units_transacted = 0;
 			double total_value = 0;
 
-			auto process = [&] (auto& offers) {
-				for(auto rit = offers.rbegin(); rit != offers.rend();) {
-					auto& pair = *rit; // Dereference the reverse iterator to get the key-value pair
-
-					// cout << "Price level: " << pair.first << endl;
-					
-					auto& quotes = pair.second; // Vect of objects
-					// sort(quotes.begin(), quotes.end()); // TODO: Sort quotes in ascending order by timestamp
-
-					// lift/hit as many levels as needed until qty filled
-					auto it = quotes.begin();
-					while(it != quotes.end() && order_quantity > 0){
-						int quote_qty = (*it)->get_quantity();
-						if(quote_qty > order_quantity){
-							// cout << "Filling part of order"<<endl;
-
-							units_transacted += order_quantity;
-							total_value += order_quantity * pair.first;
-
-							// Fill part of this order and break
-							(*it)->set_quantity(quote_qty-order_quantity);
-							quote_qty -= order_quantity;
-							order_quantity = 0;
-							break;
-						}else{
-							// cout << "Filling entire order"<<endl;
-							
-							units_transacted += quote_qty;
-							total_value += quote_qty * pair.first;
-							
-							// delete order from book and on
-							order_quantity -= quote_qty;
-							it = quotes.erase(it);
-						}
-					}
-					rit++;
+			if (side==buy){
+				if (best_quote(BookSide::ask) <= price){
+					// Can at least partially fill
+					tuple<int, double> fill = process(asks, Side::buy);
+					// Add remaining order to book
+					add_order(order_quantity, price, BookSide::bid);
+					return fill;
+				}else{
+					// No fill possible, put on book
+					add_order(order_quantity, price, BookSide::bid);
+					return make_tuple(units_transacted, total_value);
 				}
-				remove_empty_keys();
-				return make_tuple(units_transacted, total_value);
-			};
 
-			return (side == sell) ? process(bids) : process(asks);
-
-		} else if(type == limit) {
-			cout << "hehe i didnt do that yet silly hehehoho" << endl;
-			cout << "ur mom gae" << endl;
+			}else{
+				if (best_quote(BookSide::bid) >= price){
+					// Can at least partially fill
+					tuple<int, double> fill = process(bids, Side::sell);
+					// Add remaining order to book
+					add_order(order_quantity, price, BookSide::ask);
+					return fill;
+				}else{
+					// No fill possible, put on book
+					add_order(order_quantity, price, BookSide::ask);
+					return make_tuple(units_transacted, total_value);
+				}
+			}
 		}
 	}
 
-	double best_quote(Side side){
-		if (side == buy){
+	double best_quote(BookSide side){
+		if (side == bid){
 			return std::prev(bids.end())->first;
-		}else if (side == sell){
+		}else if (side == ask){
 			return std::prev(asks.end())->first;
 		} else {
 			return 0.0;
@@ -165,8 +217,8 @@ class Orderbook{
 	}
 
 	template<typename T>
-	void print_leg(map<double, vector<unique_ptr<Order>>, T>& hashmap, Side side){
-		if (side == sell){
+	void print_leg(map<double, vector<unique_ptr<Order>>, T>& hashmap, BookSide side){
+		if (side == ask){
 			for(auto& pair : hashmap){ // Price level
 				// Count size at a price level
 				int size_sum = 0;
@@ -174,8 +226,8 @@ class Orderbook{
 					size_sum += order->get_quantity();
 				}
 
-				string color = (side==buy)?"32":"31";
-				cout << "\t\033[1;" << color << "m" << "$" << fixed << setprecision(2) << pair.first << " - " << size_sum << "\033[0m ";
+				string color = "31";
+				cout << "\t\033[1;" << color << "m" << "$" << setw(6) << fixed << setprecision(2) << pair.first << setw(5) << size_sum << "\033[0m ";
 
 				// Make bars to visualize size
 				for (int i = 0; i < size_sum/10; i++){
@@ -183,15 +235,15 @@ class Orderbook{
 				}
 				cout << endl;
 			}
-		}else if (side == buy){
+		}else if (side == bid){
 			for(auto pair = hashmap.rbegin(); pair != hashmap.rend(); ++pair) { // Price level
 				int size_sum = 0;
 				for (auto& order : pair->second){ // Order level
 					size_sum += order->get_quantity();
 				}
 
-				string color = (side==buy)?"32":"31";
-				cout << "\t\033[1;" << color << "m" << "$" << fixed << setprecision(2) << pair->first << " - " << size_sum << "\033[0m ";
+				string color = "32";
+				cout << "\t\033[1;" << color << "m" << "$" << setw(6) << fixed << setprecision(2) << pair->first << setw(5) << size_sum << "\033[0m ";
 
 				// Make bars to visualize size
 				for (int i = 0; i < size_sum/10; i++){
@@ -205,14 +257,14 @@ class Orderbook{
 
 	void print(){
 		cout << "======== L2 Orderbook ========" << endl;
-		print_leg(asks, Side::sell);
+		print_leg(asks, BookSide::ask);
 
 		// print bid-ask spread
-		double best_ask = best_quote(Side::sell);
-		double best_bid = best_quote(Side::buy);
+		double best_ask = best_quote(BookSide::ask);
+		double best_bid = best_quote(BookSide::bid);
 		cout  << "\n\033[1;33m" << "======  " << 10000 * (best_ask-best_bid)/best_bid << "bps  ======\033[0m\n\n";
 
-		print_leg(bids, Side::buy);
+		print_leg(bids, BookSide::bid);
 		cout << "==============================" << endl;
 	}
 };
@@ -247,7 +299,8 @@ int main(){
 		cin >> price;
 
 		cout << "\nSubmitting limit " << ((side == buy) ? "buy":"sell") << " order for " << quantity << " units @ $" << price << endl;
-		ob.execute_order(order_type, quantity, side, price);
+		tuple<int,double> fill = ob.execute_order(order_type, quantity, side, price);
+		cout << "Immediately filled " << get<0>(fill) << "/" << quantity << " units. The rest went on the book." << endl;
 	}
 	
 	ob.print();
