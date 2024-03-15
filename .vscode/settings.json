@@ -67,6 +67,7 @@
 		"vector": "cpp",
 		"__tree": "cpp",
 		"iomanip": "cpp",
-		"map": "cpp"
+		"map": "cpp",
+		"thread": "cpp"
 	}
 }
