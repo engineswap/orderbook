@@ -13,15 +13,15 @@
 #include <iostream>
 #include <fstream>
 
-#include "order.hpp"
-#include "orderbook.hpp"
-#include "helpers.hpp"
+#include "../include/order.hpp"
+#include "../include/orderbook.hpp"
+#include "../include/helpers.hpp"
 
 using namespace std;
 
 int main(){
 	// Read ascii.txt and print it
-	std::ifstream f("ascii.txt");
+	std::ifstream f("./assets/ascii.txt");
 
     if (f.is_open())
         std::cout << f.rdbuf();

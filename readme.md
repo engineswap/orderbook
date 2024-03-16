@@ -35,7 +35,7 @@ To compile and run the program, follow these steps:
 
 1. Clone the repo: ``https://github.com/engineswap/cpp-orderbook.git``
 2. ``cd cpp-orderbook``
-3. Compile the program using the command `g++ -std=c++14 main.cpp order.cpp -o main`.
+3. Compile the program using the command `g++ -std=c++14 ./src/main.cpp ./src/order.cpp ./src/orderbook.cpp -o main`.
 4. Run the program `./main`.
 
 ***
