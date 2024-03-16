@@ -1,3 +1,14 @@
+/**
+ * @file orderbook.hpp
+ * @brief This file contains the declaration of the Orderbook class.
+ * 
+ * The Orderbook class represents an order book, which is a collection of buy and sell orders.
+ * It provides functionality to add orders, execute orders, and retrieve the best quote.
+ * The order book is implemented using two maps, one for buy orders (bids) and one for sell orders (asks).
+ * Each map is sorted based on the price of the orders.
+ * The Orderbook class also provides methods to clean up empty keys and print the order book.
+ */
+
 #include <iostream>
 #include <vector>
 #include <chrono>
@@ -11,9 +22,7 @@
 
 using namespace std;
 
-// Guards to avoid redifining twice
-#ifndef ORDERBOOK_H
-#define ORDERBOOK_H
+#pragma once
 
 class Orderbook{
 	map<double, vector<unique_ptr<Order>>, less<double>> bids; 
@@ -38,5 +47,3 @@ public:
 
 	void print();
 };
-
-#endif

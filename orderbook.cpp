@@ -1,3 +1,8 @@
+/**
+ * @file order.cpp
+ * @brief This file contains the implementation of the Orderbook class.
+ */
+
 #include <iostream>
 #include <vector>
 #include <chrono>
@@ -23,19 +28,19 @@ Orderbook::Orderbook(){
 	srand (time(NULL)); 
 
 	// Add some dummy orders
-	for (int i=0; i<5; i++){ 
+	for (int i=0; i<10; i++){ 
 		double random_price = 90.0 + (rand() % 1001) / 100.0;
-		int random_qty = rand() % 50 + 1; 
-		int random_qty2 = rand() % 50 + 1;
+		int random_qty = rand() % 100 + 1; 
+		int random_qty2 = rand() % 100 + 1;
 		
 		add_order(random_qty, random_price, BookSide::bid);
 		this_thread::sleep_for(chrono::milliseconds(1)); // Sleep for a millisecond so the orders have different timestamps
 		add_order(random_qty2, random_price, BookSide::bid);
 	}
-	for (int i=0; i<5; i++){
+	for (int i=0; i<10; i++){
 		double random_price = 100.0 + (rand() % 1001) / 100.0;
-		int random_qty = rand() % 50 + 1; 
-		int random_qty2 = rand() % 50 + 1; 			
+		int random_qty = rand() % 100 + 1; 
+		int random_qty2 = rand() % 100 + 1; 			
 		
 		add_order(random_qty, random_price, BookSide::ask);
 		this_thread::sleep_for(chrono::milliseconds(1)); // Sleep for a millisecond so the orders have different timestamps
@@ -70,20 +75,20 @@ tuple<int,double> Orderbook::execute_order(OrderType type, int order_quantity, S
 		for(auto rit = offers.rbegin(); rit != offers.rend();) {
 			auto& pair = *rit; // Dereference iterator to get the key-value pair
 			double price_level = pair.first;
-
-			cout << "Price level: " << price_level << endl;
 			
-			auto& quotes = pair.second; // Vect of objects
-			// sort(quotes.begin(), quotes.end()); // TODO: Sort quotes in ascending order by timestamp
+			auto& quotes = pair.second; // Order vector
+
+			// Sort quotes in ascending order by timestamp
+			sort(quotes.begin(), quotes.end(), [](const unique_ptr<Order>& a, const unique_ptr<Order>& b) {
+				return a->get_timestamp() < b->get_timestamp();
+			});
 
 			// Ensure agreeable price for limit order
 			bool can_transact = true; 
 			if (type == limit){
 				if (side == buy && price_level > price){
-					cout << "Cannot BUY at this price level" << endl;
 					can_transact = false;
 				}else if(side == sell && price_level < price){
-					cout << "Cannot SELL at this price level" << endl;
 					can_transact = false;
 				}
 			}
@@ -92,9 +97,8 @@ tuple<int,double> Orderbook::execute_order(OrderType type, int order_quantity, S
 			auto it = quotes.begin();
 			while(it != quotes.end() && order_quantity > 0 && can_transact){
 				int quote_qty = (*it)->get_quantity();
+				uint64_t timestamp = (*it)->get_timestamp();
 				if(quote_qty > order_quantity){
-					// cout << "Filling part of order"<<endl;
-
 					units_transacted += order_quantity;
 					total_value += order_quantity * pair.first;
 
@@ -104,8 +108,6 @@ tuple<int,double> Orderbook::execute_order(OrderType type, int order_quantity, S
 					order_quantity = 0;
 					break;
 				}else{
-					// cout << "Filling entire order"<<endl;
-					
 					units_transacted += quote_qty;
 					total_value += quote_qty * price_level;
 					
@@ -156,6 +158,8 @@ tuple<int,double> Orderbook::execute_order(OrderType type, int order_quantity, S
 				return make_tuple(units_transacted, total_value);
 			}
 		}
+	}else{
+		throw std::runtime_error("Invalid order type encountered");
 	}
 }
 
@@ -209,7 +213,7 @@ void Orderbook::print_leg(map<double, vector<unique_ptr<Order>>, T>& hashmap, Bo
 }
 
 void Orderbook::print(){
-	cout << "======== L2 Orderbook ========" << endl;
+	cout << "========== Orderbook =========" << endl;
 	print_leg(asks, BookSide::ask);
 
 	// print bid-ask spread
@@ -218,5 +222,5 @@ void Orderbook::print(){
 	cout  << "\n\033[1;33m" << "======  " << 10000 * (best_ask-best_bid)/best_bid << "bps  ======\033[0m\n\n";
 
 	print_leg(bids, BookSide::bid);
-	cout << "==============================" << endl;
+	cout << "==============================\n\n\n";
 }

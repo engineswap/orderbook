@@ -68,7 +68,10 @@
 		"__tree": "cpp",
 		"iomanip": "cpp",
 		"map": "cpp",
-		"thread": "cpp"
+		"thread": "cpp",
+		"deque": "cpp",
+		"fstream": "cpp",
+		"stack": "cpp"
 	},
 	"C_Cpp.errorSquiggles": "disabled"
 }

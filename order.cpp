@@ -1,3 +1,8 @@
+/**
+ * @file order.cpp
+ * @brief This file contains the implementation of the Order class.
+ */
+
 #include <iostream>
 #include <vector>
 #include <chrono>
@@ -8,12 +13,7 @@
 #include <memory>
 
 #include "order.hpp"
-
-uint64_t unix_time() {
-    return std::chrono::duration_cast<std::chrono::nanoseconds>(
-        std::chrono::system_clock::now().time_since_epoch()
-    ).count();
-}
+#include "helpers.hpp"
 
 Order::Order(int quantity_, double price_, BookSide side_){
 	timestamp = unix_time();

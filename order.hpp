@@ -1,3 +1,10 @@
+/**
+ * @file order.hpp
+ * @brief This file contains the declaration of the Order class.
+ * 
+ * The Order class represents an order in an order book. It stores information such as the quantity, price, side, and timestamp of the order.
+ * The class provides setters and getters to modify and access the order's properties.
+ */
 #include <iostream>
 #include <vector>
 #include <chrono>
@@ -10,9 +17,7 @@
 #include "enums.hpp"
 using namespace std;
 
-// Guards to avoid redifining twice
-#ifndef ORDERS_H
-#define ORDERS_H
+#pragma once
 
 class Order{
 	// Properties
@@ -33,4 +38,3 @@ public:
 	time_t get_timestamp();
 };
 
-#endif
