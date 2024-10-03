@@ -9,24 +9,17 @@
  * The process continues until the user chooses to exit the program.
  */
 
-// Run command: g++ -std=c++14 main.cpp order.cpp -o main && ./main
+// Run command: g++ -std=c++14 ./src/main.cpp ./src/order.cpp ./src/orderbook.cpp -o main
 #include <iostream>
-#include <fstream>
-
 #include "../include/order.hpp"
 #include "../include/orderbook.hpp"
 #include "../include/helpers.hpp"
 
-using namespace std;
+using std::cout;
+using std::cin;
 
 int main(){
-	// Read ascii.txt and print it
-	std::ifstream f("./assets/ascii.txt");
-
-    if (f.is_open())
-        std::cout << f.rdbuf();
-
-	cout << endl;
+    print_file_contents("./assets/ascii.txt");
 
 	Orderbook ob;
 
@@ -34,7 +27,7 @@ int main(){
 		int action;
 		cout << "Options\n————————————————————\n|1. Print Orderbook|\n|2. Submit order   |\n ————————————————————\nChoice: ";
 		cin >> action;
-		cout << endl;
+		cout << "\n";
 
 		if (action == 1){
 			ob.print();
@@ -45,39 +38,40 @@ int main(){
 			int side_input; 
 			double price; 
 
-			cout << "Enter order type:\n1. Market order\n2. Limit order\nSelection: ";
+			cout << "Enter order type:\n0. Market order\n1. Limit order\nSelection: ";
 			cin >> order_type_input;
 			OrderType order_type = static_cast<OrderType>(order_type_input);
 
-			cout << "\nEnter side:\n1. Buy\n2. Sell\nSelection: ";
+			cout << "\nEnter side:\n0. Buy\n1. Sell\nSelection: ";
 			cin >> side_input;
 			Side side = static_cast<Side>(side_input);
 
 			cout << "\nEnter order quantity: ";
 			cin >> quantity;
 
-			if(order_type == market){
-				cout << "\nSubmitting market " << ((side == buy) ? "buy":"sell") << " order for " << quantity << " units.." << endl;
+			if(order_type == OrderType::market){
+				cout << "\nSubmitting market " << ((side == Side::buy) ? "buy":"sell") 
+                    << " order for " << quantity << " units.." << "\n";
 				
 				u_int64_t start_time = unix_time();
-				tuple<int,double> fill = ob.execute_order(order_type, quantity, side);
+                std::pair<int,double> fill = ob.execute_order(order_type, quantity, side);
 				u_int64_t end_time = unix_time();
-				
-				cout << "\033[33mFilled " << get<0>(fill) << "/" << quantity << " units @ $" << get<1>(fill)/get<0>(fill) << " average price. Time taken: " << (end_time-start_time) << " nano seconds\033[0m" << endl;
-			}else if(order_type == limit){
+			    
+                print_fill(fill, quantity, start_time, end_time);
+			}else if(order_type == OrderType::limit){
 				cout << "\nEnter limit price: ";
 				cin >> price;
 
-				cout << "\nSubmitting limit " << ((side == buy) ? "buy":"sell") << " order for " << quantity << " units @ $" << price << ".." << endl;
+				cout << "\nSubmitting limit " << ((side == Side::buy) ? "buy":"sell") 
+                    << " order for " << quantity << " units @ $" << price << ".." << "\n";
 
 				u_int64_t start_time = unix_time();
-				tuple<int,double> fill = ob.execute_order(order_type, quantity, side, price);
+                std::pair<int,double> fill = ob.execute_order(order_type, quantity, side, price);
 				u_int64_t end_time = unix_time();
 
-				//come up with a new, clean order confimation message which incdes how many units filled as a fraction, execution time, avg fill price, side (bought or sold)
-				cout << "\033[33mFilled " << get<0>(fill) << "/" << quantity << " units @ $" << get<1>(fill)/get<0>(fill) << " average price. Time taken: " << (end_time-start_time) << " nano seconds\033[0m" << endl;
+                print_fill(fill, quantity, start_time, end_time);
 			}
-			cout << endl;
+			cout << "\n";
 		}
 	}
 }

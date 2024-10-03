@@ -16,7 +16,7 @@
 #include "../include/orderbook.hpp"
 
 void Orderbook::add_order(int qty, double price, BookSide side){
-	if(side == bid){
+	if(side == BookSide::bid){
 		bids[price].push_back(make_unique<Order>(qty, price, side));
 	}else{
 		asks[price].push_back(make_unique<Order>(qty, price, side));
@@ -25,8 +25,9 @@ void Orderbook::add_order(int qty, double price, BookSide side){
 
 Orderbook::Orderbook(){
 	// seed RNG
-	srand (time(NULL)); 
-
+	// srand (time(NULL)); 
+    srand(12);
+    
 	// Add some dummy orders
 	for (int i=0; i<10; i++){ 
 		double random_price = 90.0 + (rand() % 1001) / 100.0;
@@ -85,10 +86,10 @@ tuple<int,double> Orderbook::execute_order(OrderType type, int order_quantity, S
 
 			// Ensure agreeable price for limit order
 			bool can_transact = true; 
-			if (type == limit){
-				if (side == buy && price_level > price){
+			if (type == OrderType::limit){
+				if (side == Side::buy && price_level > price){
 					can_transact = false;
-				}else if(side == sell && price_level < price){
+				}else if(side == Side::sell && price_level < price){
 					can_transact = false;
 				}
 			}
@@ -123,16 +124,16 @@ tuple<int,double> Orderbook::execute_order(OrderType type, int order_quantity, S
 	};
 	
 	// market order
-	if (type == market) {
+	if (type == OrderType::market) {
 
-		return (side == sell) ? process(bids, Side::sell) : process(asks, Side::buy);
+		return (side == Side::sell) ? process(bids, Side::sell) : process(asks, Side::buy);
 
-	} else if(type == limit) {
+	} else if(type == OrderType::limit) {
 		// Analytics 
 		int units_transacted = 0;
 		double total_value = 0;
 
-		if (side==buy){
+		if (side==Side::buy){
 			if (best_quote(BookSide::ask) <= price){
 				// Can at least partially fill
 				tuple<int, double> fill = process(asks, Side::buy);
@@ -164,9 +165,9 @@ tuple<int,double> Orderbook::execute_order(OrderType type, int order_quantity, S
 }
 
 double Orderbook::best_quote(BookSide side){
-	if (side == bid){
+	if (side == BookSide::bid){
 		return std::prev(bids.end())->first;
-	}else if (side == ask){
+	}else if (side == BookSide::ask){
 		return std::prev(asks.end())->first;
 	} else {
 		return 0.0;
@@ -175,7 +176,7 @@ double Orderbook::best_quote(BookSide side){
 
 template<typename T>
 void Orderbook::print_leg(map<double, vector<unique_ptr<Order>>, T>& hashmap, BookSide side){
-	if (side == ask){
+	if (side == BookSide::ask){
 		for(auto& pair : hashmap){ // Price level
 			// Count size at a price level
 			int size_sum = 0;
@@ -192,7 +193,7 @@ void Orderbook::print_leg(map<double, vector<unique_ptr<Order>>, T>& hashmap, Bo
 			}
 			cout << endl;
 		}
-	}else if (side == bid){
+	}else if (side == BookSide::bid){
 		for(auto pair = hashmap.rbegin(); pair != hashmap.rend(); ++pair) { // Price level
 			int size_sum = 0;
 			for (auto& order : pair->second){ // Order level

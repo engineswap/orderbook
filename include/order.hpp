@@ -5,19 +5,13 @@
  * The Order class represents an order in an order book. It stores information such as the quantity, price, side, and timestamp of the order.
  * The class provides setters and getters to modify and access the order's properties.
  */
-#include <iostream>
-#include <vector>
-#include <chrono>
-#include <stdlib.h> 
-#include <map>
-#include <thread>
-#include <iomanip>
-#include <memory>
-
-#include "enums.hpp"
-using namespace std;
 
 #pragma once
+
+#include <cstdint>
+#include <ctime>
+#include "enums.hpp"
+#include "helpers.hpp"
 
 class Order{
 	// Properties
@@ -38,3 +32,11 @@ public:
 	time_t get_timestamp();
 };
 
+// Migrating to struct
+
+// struct Order{
+//     int quantity;
+//     double price;
+//     BookSide side;
+//     uint64_t timestamp; 
+// };
