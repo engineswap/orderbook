@@ -76,10 +76,6 @@ std::pair<int,double> Orderbook::fill_order(map<double, vector<unique_ptr<Order>
         double price_level = pair.first;
         auto& quotes = pair.second; // Order vector
 
-        // Sort quotes in ascending order by timestamp
-        sort(quotes.begin(), quotes.end(), [](const unique_ptr<Order>& a, const unique_ptr<Order>& b) {
-            return a->timestamp < b->timestamp;
-        });
 
         // Ensure agreeable price for limit order
         bool can_transact = true; 
