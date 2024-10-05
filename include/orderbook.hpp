@@ -20,22 +20,31 @@ using namespace std;
 #pragma once
 
 class Orderbook{
+    // Think about using unordered map
 	map<double, vector<unique_ptr<Order>>, less<double>> bids; 
 	map<double, vector<unique_ptr<Order>>, greater<double>> asks; 
 	
 public:
 	void add_order(int qty, double price, BookSide side);
 	
-	Orderbook();
+	Orderbook(bool generate_dummies);
 
 	template<typename T>
 	void clean_leg(map<double, vector<unique_ptr<Order>>, T>& map);
 
 	void remove_empty_keys();
 
-	tuple<int,double> execute_order(OrderType type, int order_quantity, Side side, double price = 0);
+    std::pair<int,double> handle_order(OrderType type, int order_quantity, Side side, double price = 0);
+    
+    template <typename T>
+    std::pair<int,double> fill_order(map<double, vector<unique_ptr<Order>>, T>& offers, 
+                                 const OrderType type, const Side side, int& order_quantity,
+                                 const double price, int& units_transacted, double& total_value);
 
 	double best_quote(BookSide side);
+
+    const auto& get_bids(){ return bids; }
+    const auto& get_asks(){ return asks; }
 
 	template<typename T>
 	void print_leg(map<double, vector<unique_ptr<Order>>, T>& hashmap, BookSide side);

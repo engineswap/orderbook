@@ -11,7 +11,6 @@
 
 // Run command: g++ -std=c++14 ./src/main.cpp ./src/order.cpp ./src/orderbook.cpp -o main
 #include <iostream>
-#include "../include/order.hpp"
 #include "../include/orderbook.hpp"
 #include "../include/helpers.hpp"
 
@@ -21,7 +20,7 @@ using std::cin;
 int main(){
     print_file_contents("./assets/ascii.txt");
 
-	Orderbook ob;
+	Orderbook ob(true);
 
 	while(true){
 		int action;
@@ -54,7 +53,7 @@ int main(){
                     << " order for " << quantity << " units.." << "\n";
 				
 				u_int64_t start_time = unix_time();
-                std::pair<int,double> fill = ob.execute_order(order_type, quantity, side);
+                std::pair<int,double> fill = ob.handle_order(order_type, quantity, side);
 				u_int64_t end_time = unix_time();
 			    
                 print_fill(fill, quantity, start_time, end_time);
@@ -66,7 +65,7 @@ int main(){
                     << " order for " << quantity << " units @ $" << price << ".." << "\n";
 
 				u_int64_t start_time = unix_time();
-                std::pair<int,double> fill = ob.execute_order(order_type, quantity, side, price);
+                std::pair<int,double> fill = ob.handle_order(order_type, quantity, side, price);
 				u_int64_t end_time = unix_time();
 
                 print_fill(fill, quantity, start_time, end_time);

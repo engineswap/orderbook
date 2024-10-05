@@ -9,34 +9,19 @@
 #pragma once
 
 #include <cstdint>
-#include <ctime>
 #include "enums.hpp"
 #include "helpers.hpp"
 
-class Order{
-	// Properties
-	int quantity;
-	double price;
-	BookSide side;
-	uint64_t timestamp;
+struct Order{
+    int quantity; // 4 
+    BookSide side; // 4
+    double price; // 8
+    uint64_t timestamp; //8
 
-public:
-	Order(int quantity_, double price_, BookSide side_);
-
-	// Setters
-	void set_quantity(int new_qty);
-
-	// Getters
-	int get_quantity();
-	double get_price();
-	time_t get_timestamp();
+    Order(int q, double p, BookSide s, uint64_t t = unix_time()){
+        quantity = q;    
+        price = p;
+        side = s;
+        timestamp = t;
+    }
 };
-
-// Migrating to struct
-
-// struct Order{
-//     int quantity;
-//     double price;
-//     BookSide side;
-//     uint64_t timestamp; 
-// };
