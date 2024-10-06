@@ -95,9 +95,9 @@ std::pair<int,double> Orderbook::fill_order(map<double, vector<unique_ptr<Order>
                 int& cur_quote_qty = (*it)->quantity; // COPY
                 const double cur_quote_price = (*it)->price;
 
-                cout << "Quotes at level: " << cur_quote_qty << ", Size of order: "<<order_quantity<<"\n";
+                // cout << "Quotes at level: " << cur_quote_qty << ", Size of order: "<<order_quantity<<"\n";
                 if(cur_quote_qty > order_quantity){ // Fully fill our order on this level 
-                    cout << "can fully fill here\n";
+                    // cout << "can fully fill here\n";
                     // Update response vars
                     units_transacted += order_quantity;
                     total_value += order_quantity * cur_quote_price;
@@ -110,7 +110,7 @@ std::pair<int,double> Orderbook::fill_order(map<double, vector<unique_ptr<Order>
 
                     break; // Done, order filled
                 }else{ // Partially fill our order on this level 
-                    cout << "can partial fill here\n";
+                    // cout << "can partial fill here\n";
                     // Update response vars
                     units_transacted += cur_quote_qty;
                     total_value += cur_quote_qty * cur_quote_price;

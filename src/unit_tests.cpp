@@ -42,11 +42,9 @@ void test_execute_market_order() {
     orderbook.add_order(150, 100.50, BookSide::bid);
     orderbook.add_order(200, 101.00, BookSide::ask);
     orderbook.add_order(250, 101.00, BookSide::ask);
-    orderbook.print();
     // Execute a market order to sell 200 units
     auto [units_transacted, total_value] = orderbook.handle_order(OrderType::market, 200, Side::sell, 0);
 
-    orderbook.print();
     // Use getter functions to access bids
     const auto& bids = orderbook.get_bids();
 
