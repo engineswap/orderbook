@@ -18,10 +18,7 @@ struct Order{
     double price; // 8
     uint64_t timestamp; //8
 
-    Order(int q, double p, BookSide s, uint64_t t = unix_time()){
-        quantity = q;    
-        price = p;
-        side = s;
-        timestamp = t;
-    }
+    Order(int q, double p, BookSide s, uint64_t t = unix_time())
+        : quantity {q}, price {p}, side {s}, timestamp {t} {}
+    
 };

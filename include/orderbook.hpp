@@ -9,6 +9,8 @@
  * The Orderbook class also provides methods to clean up empty keys and print the order book.
  */
 
+#pragma once
+
 #include <vector>
 #include <map>
 #include <memory>
@@ -17,12 +19,11 @@
 
 using namespace std;
 
-#pragma once
-
 class Orderbook{
-    // Think about using unordered map
-	map<double, vector<unique_ptr<Order>>, less<double>> bids; 
-	map<double, vector<unique_ptr<Order>>, greater<double>> asks; 
+private:
+    // m_ indicates private members
+	map<double, vector<unique_ptr<Order>>, less<double>> m_bids; 
+	map<double, vector<unique_ptr<Order>>, greater<double>> m_asks; 
 	
 public:
 	void add_order(int qty, double price, BookSide side);
@@ -43,8 +44,8 @@ public:
 
 	double best_quote(BookSide side);
 
-    const auto& get_bids(){ return bids; }
-    const auto& get_asks(){ return asks; }
+    const auto& get_bids(){ return m_bids; }
+    const auto& get_asks(){ return m_asks; }
 
 	template<typename T>
 	void print_leg(map<double, vector<unique_ptr<Order>>, T>& hashmap, BookSide side);

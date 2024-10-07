@@ -18,9 +18,9 @@
 void Orderbook::add_order(int qty, double price, BookSide side){
     auto order = std::make_unique<Order>(qty, price, side);
 	if(side == BookSide::bid){
-		bids[price].push_back(std::move(order)); // std::move avoids copying the smart pointer
+		m_bids[price].push_back(std::move(order)); // std::move avoids copying the smart pointer
 	}else{
-		asks[price].push_back(std::move(order));
+		m_asks[price].push_back(std::move(order));
 	}
 }
 
@@ -127,8 +127,8 @@ std::pair<int,double> Orderbook::fill_order(map<double, vector<unique_ptr<Order>
     }
     
     // Remove empty vectors from the maps
-    clean_leg(bids);
-    clean_leg(asks);
+    clean_leg(m_bids);
+    clean_leg(m_asks);
 
     return std::make_pair(units_transacted, total_value);
 };
@@ -144,9 +144,9 @@ std::pair<int,double> Orderbook::handle_order(OrderType type, int order_quantity
 	if (type == OrderType::market) {
         std::pair<int,double> fill;
         if (side==Side::sell){
-            fill = Orderbook::fill_order(bids, OrderType::market, Side::sell, order_quantity, price, units_transacted, total_value);
+            fill = Orderbook::fill_order(m_bids, OrderType::market, Side::sell, order_quantity, price, units_transacted, total_value);
         }else if(side==Side::buy){
-            fill = Orderbook::fill_order(asks, OrderType::market, Side::buy, order_quantity, price, units_transacted, total_value);
+            fill = Orderbook::fill_order(m_asks, OrderType::market, Side::buy, order_quantity, price, units_transacted, total_value);
         }
         return fill;
 	} else if(type == OrderType::limit) {
@@ -157,7 +157,7 @@ std::pair<int,double> Orderbook::handle_order(OrderType type, int order_quantity
 		if (side==Side::buy){
 			if (best_quote(BookSide::ask) <= price){
 				// Can at least partially fill
-				tuple<int, double> fill = Orderbook::fill_order(asks, OrderType::limit, Side::buy, order_quantity, price, units_transacted, total_value);
+				tuple<int, double> fill = Orderbook::fill_order(m_asks, OrderType::limit, Side::buy, order_quantity, price, units_transacted, total_value);
 				// Add remaining order to book
 				add_order(order_quantity, price, BookSide::bid);
 				return fill;
@@ -170,7 +170,7 @@ std::pair<int,double> Orderbook::handle_order(OrderType type, int order_quantity
 		}else{
 			if (best_quote(BookSide::bid) >= price){
 				// Can at least partially fill
-                tuple<int, double> fill= Orderbook::fill_order(bids, OrderType::limit, Side::sell, order_quantity, price, units_transacted, total_value);
+                tuple<int, double> fill= Orderbook::fill_order(m_bids, OrderType::limit, Side::sell, order_quantity, price, units_transacted, total_value);
 				// Add remaining order to book
 				add_order(order_quantity, price, BookSide::ask);
 				return fill;
@@ -187,9 +187,9 @@ std::pair<int,double> Orderbook::handle_order(OrderType type, int order_quantity
 
 double Orderbook::best_quote(BookSide side){
 	if (side == BookSide::bid){
-		return std::prev(bids.end())->first;
+		return std::prev(m_bids.end())->first;
 	}else if (side == BookSide::ask){
-		return std::prev(asks.end())->first;
+		return std::prev(m_asks.end())->first;
 	} else {
 		return 0.0;
 	}
@@ -238,13 +238,13 @@ void Orderbook::print_leg(map<double, vector<unique_ptr<Order>>, T>& hashmap, Bo
 
 void Orderbook::print(){
 	cout << "========== Orderbook =========" << "\n";
-	print_leg(asks, BookSide::ask);
+	print_leg(m_asks, BookSide::ask);
 
 	// print bid-ask spread
 	double best_ask = best_quote(BookSide::ask);
 	double best_bid = best_quote(BookSide::bid);
 	cout  << "\n\033[1;33m" << "======  " << 10000 * (best_ask-best_bid)/best_bid << "bps  ======\033[0m\n\n";
 
-	print_leg(bids, BookSide::bid);
+	print_leg(m_bids, BookSide::bid);
 	cout << "==============================\n\n\n";
 }
