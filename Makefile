@@ -2,7 +2,7 @@
 
 # Variables
 CC = g++
-CFLAGS = -std=c++17
+CFLAGS = -std=c++17 -O3
 SRC = ./src/main.cpp ./src/helpers.cpp ./src/orderbook.cpp
 UNIT_TEST_SRC = ./src/unit_tests.cpp ./src/helpers.cpp ./src/orderbook.cpp
 OBJ = $(SRC:.cpp=.o)

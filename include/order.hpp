@@ -13,12 +13,11 @@
 #include "helpers.hpp"
 
 struct Order{
-    int quantity; // 4 
-    BookSide side; // 4
-    double price; // 8
-    uint64_t timestamp; //8
+    int quantity;       // 4b 
+    BookSide side;      // 4b
+    double price;       // 8b
+    uint64_t timestamp; // 8b
 
     Order(int q, double p, BookSide s, uint64_t t = unix_time())
         : quantity {q}, price {p}, side {s}, timestamp {t} {}
-    
 };

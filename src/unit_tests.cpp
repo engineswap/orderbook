@@ -3,13 +3,13 @@
 #include "../include/order.hpp"
 #include "../include/orderbook.hpp"
 
-// g++ -std=c++17 ./src/orderbook.cpp ./src/unit_tests.cpp -o orderbook_test && ./orderbook_test
+using namespace std;
 
 // Function to test adding orders to the orderbook
 void test_add_order() {
     Orderbook orderbook(false);
 
-    // Add a bid order and an ask order
+    // Add one bid order and one ask order
     orderbook.add_order(100, 100.50, BookSide::bid);
     orderbook.add_order(200, 101.00, BookSide::ask);
 
@@ -17,53 +17,64 @@ void test_add_order() {
     const auto& bids = orderbook.get_bids();
     const auto& asks = orderbook.get_asks();
 
+    // Debug prints: show each price level and number of orders in that level.
+    cout << "Bids:" << endl;
+    for (const auto& [price, orders] : bids) {
+        cout << "  Price: " << price << ", orders: " << orders.size() << endl;
+    }
+    cout << "Asks:" << endl;
+    for (const auto& [price, orders] : asks) {
+        cout << "  Price: " << price << ", orders: " << orders.size() << endl;
+    }
+
     // Check if the bid order was added correctly
-    cout << bids.size();
-    assert(bids.size() == 1); // Check the number of price levels in bids
-    assert(bids.at(100.50).size() == 1); // Check the number of orders at this price level
-    assert(bids.at(100.50)[0]->quantity == 100); // Check the order quantity
-    assert(bids.at(100.50)[0]->price == 100.50); // Check the order price
+    assert(bids.size() == 1);                   // Only one price level in bids
+    assert(bids.at(100.50).size() == 1);          // One order at price 100.50
+    assert(bids.at(100.50)[0]->quantity == 100);  // Order quantity is 100
+    assert(bids.at(100.50)[0]->price == 100.50);   // Order price is 100.50
 
     // Check if the ask order was added correctly
-    assert(asks.size() == 1); // Check the number of price levels in asks
-    assert(asks.at(101.00).size() == 1); // Check the number of orders at this price level
-    assert(asks.at(101.00)[0]->quantity == 200); // Check the order quantity
-    assert(asks.at(101.00)[0]->price == 101.00); // Check the order price
+    assert(asks.size() == 1);                   // Only one price level in asks
+    assert(asks.at(101.00).size() == 1);          // One order at price 101.00
+    assert(asks.at(101.00)[0]->quantity == 200);  // Order quantity is 200
+    assert(asks.at(101.00)[0]->price == 101.00);   // Order price is 101.00
 
-    std::cout << "test_add_order passed!" << std::endl;
+    cout << "test_add_order passed!" << endl;
 }
 
 // Function to test executing a market order
 void test_execute_market_order() {
     Orderbook orderbook(false);
 
-    // Add multiple bid and ask orders to the orderbook
+    // Add multiple bid orders
     orderbook.add_order(100, 100.50, BookSide::bid);
     orderbook.add_order(150, 100.50, BookSide::bid);
+    // Add multiple ask orders (though market sell order works against bids)
     orderbook.add_order(200, 101.00, BookSide::ask);
     orderbook.add_order(250, 101.00, BookSide::ask);
-    // Execute a market order to sell 200 units
+
+    // Execute a market order to sell 200 units (should fill against bids)
     auto [units_transacted, total_value] = orderbook.handle_order(OrderType::market, 200, Side::sell, 0);
 
-    // Use getter functions to access bids
     const auto& bids = orderbook.get_bids();
+    // Expect 200 units filled at 100.50 price
+    assert(units_transacted == 200);
+    assert(total_value == 100.50 * 200);
 
-    // Check if 200 units were transacted correctly
-    assert(units_transacted == 200); // Check that 200 units were filled
-    assert(total_value == 100.50 * 200); // Check that the total value is correct
+    // After filling, the bid orders at 100.50 should be reduced:
+    // Initially, there were two orders: one with 100 and one with 150 (total 250).
+    // Filling 200 units should remove the first 100 completely and reduce the second from 150 to 50.
+    assert(bids.at(100.50).size() == 1);
+    assert(bids.at(100.50)[0]->quantity == 50);
 
-    // Check if the bid order at 100.50 is now reduced to 50 units
-    assert(bids.at(100.50).size() == 1); // Ensure there is still one order at 100.50
-    assert(bids.at(100.50)[0]->quantity == 50); // Check the remaining quantity of the order
-
-    std::cout << "test_execute_market_order passed!" << std::endl;
+    cout << "test_execute_market_order passed!" << endl;
 }
 
 // Function to test executing a limit order
 void test_execute_limit_order() {
     Orderbook orderbook(false);
 
-    // Add multiple bid and ask orders to the orderbook
+    // Add multiple bid and ask orders
     orderbook.add_order(100, 100.50, BookSide::bid);
     orderbook.add_order(150, 100.50, BookSide::bid);
     orderbook.add_order(200, 101.00, BookSide::ask);
@@ -72,65 +83,58 @@ void test_execute_limit_order() {
     // Execute a limit order to buy 300 units at 101.00
     auto [units_transacted, total_value] = orderbook.handle_order(OrderType::limit, 300, Side::buy, 101.00);
 
-    // Use getter functions to access asks
     const auto& asks = orderbook.get_asks();
+    // Expect 300 units filled at 101.00 price level
+    assert(units_transacted == 300);
+    assert(total_value == 101.00 * 300);
 
-    // Check if 300 units were transacted correctly
-    assert(units_transacted == 300); // Check that 300 units were filled
-    assert(total_value == 101.00 * 300); // Check that the total value is correct
+    // Initially there were two ask orders at 101.00 (200 and 250 = 450).
+    // Filling 300 should remove the 200-unit order entirely and reduce the 250-unit order to 150.
+    assert(asks.at(101.00).size() == 1);
+    assert(asks.at(101.00)[0]->quantity == 150);
 
-    // Check if the ask order at 101.00 is now reduced to 150 units
-    assert(asks.at(101.00).size() == 1); // Ensure there is still one order at 101.00
-    assert(asks.at(101.00)[0]->quantity == 150); // Check the remaining quantity of the order
-
-    std::cout << "test_execute_limit_order passed!" << std::endl;
+    cout << "test_execute_limit_order passed!" << endl;
 }
 
 // Function to test the best bid and best ask prices
 void test_best_quote() {
     Orderbook orderbook(false);
 
-    // Add a bid and an ask order to the orderbook
     orderbook.add_order(100, 100.50, BookSide::bid);
     orderbook.add_order(200, 101.00, BookSide::ask);
 
-    // Check the best bid and best ask
     double best_bid = orderbook.best_quote(BookSide::bid);
     double best_ask = orderbook.best_quote(BookSide::ask);
 
-    assert(best_bid == 100.50); // Ensure the best bid is correct
-    assert(best_ask == 101.00); // Ensure the best ask is correct
+    assert(best_bid == 100.50);
+    assert(best_ask == 101.00);
 
-    std::cout << "test_best_quote passed!" << std::endl;
+    cout << "test_best_quote passed!" << endl;
 }
 
 // Function to test a small market order against multiple ask orders
 void test_small_market_order_best_ask() {
     Orderbook orderbook(false);
 
-    // Add three large ask orders to the orderbook
-    orderbook.add_order(1000, 101.00, BookSide::ask); // 1000 units at 101.00
-    orderbook.add_order(1500, 102.00, BookSide::ask); // 1500 units at 102.00
-    orderbook.add_order(2000, 103.00, BookSide::ask); // 2000 units at 103.00
+    // Add three ask orders at different prices
+    orderbook.add_order(1000, 101.00, BookSide::ask); // Best ask
+    orderbook.add_order(1500, 102.00, BookSide::ask);
+    orderbook.add_order(2000, 103.00, BookSide::ask);
 
-    // Execute a small market order to buy 100 units
+    // Execute a market order to buy 100 units (should fill at best ask: 101.00)
     auto [units_transacted, total_value] = orderbook.handle_order(OrderType::market, 100, Side::buy, 0);
 
-    // Use getter function to access asks
     const auto& asks = orderbook.get_asks();
+    assert(units_transacted == 100);
+    assert(total_value == 101.00 * 100);
 
-    // Check if 100 units were transacted correctly at the best ask price (101.00)
-    assert(units_transacted == 100); // Check that 100 units were filled
-    assert(total_value == 101.00 * 100); // Check that the total value is correct
+    // The best ask at 101.00 should be reduced from 1000 to 900
+    assert(asks.at(101.00)[0]->quantity == 900);
+    // The orders at higher price levels should remain unchanged.
+    assert(asks.at(102.00)[0]->quantity == 1500);
+    assert(asks.at(103.00)[0]->quantity == 2000);
 
-    // Check that only the best ask order (101.00) is affected
-    assert(asks.at(101.00)[0]->quantity == 900); // 1000 - 100 = 900 remaining units at 101.00
-
-    // Ensure the other ask orders are not affected
-    assert(asks.at(102.00)[0]->quantity == 1500); // No change in quantity
-    assert(asks.at(103.00)[0]->quantity == 2000); // No change in quantity
-
-    std::cout << "test_small_market_order_best_ask passed!" << std::endl;
+    cout << "test_small_market_order_best_ask passed!" << endl;
 }
 
 // Main function to run all tests
@@ -141,6 +145,6 @@ int main() {
     test_best_quote();
     test_small_market_order_best_ask();
 
-    std::cout << "All tests passed!" << std::endl;
+    cout << "All tests passed!" << endl;
     return 0;
 }
