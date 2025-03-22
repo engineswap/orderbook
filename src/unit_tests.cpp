@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cassert>
 #include "../include/order.hpp"
+#include "../include/helpers.hpp"
 #include "../include/orderbook.hpp"
 
 using namespace std;
@@ -16,16 +17,6 @@ void test_add_order() {
     // Use getter functions to access bids and asks
     const auto& bids = orderbook.get_bids();
     const auto& asks = orderbook.get_asks();
-
-    // Debug prints: show each price level and number of orders in that level.
-    cout << "Bids:" << endl;
-    for (const auto& [price, orders] : bids) {
-        cout << "  Price: " << price << ", orders: " << orders.size() << endl;
-    }
-    cout << "Asks:" << endl;
-    for (const auto& [price, orders] : asks) {
-        cout << "  Price: " << price << ", orders: " << orders.size() << endl;
-    }
 
     // Check if the bid order was added correctly
     assert(bids.size() == 1);                   // Only one price level in bids
@@ -137,6 +128,57 @@ void test_small_market_order_best_ask() {
     cout << "test_small_market_order_best_ask passed!" << endl;
 }
 
+void test_modify_and_delete_order() {
+    Orderbook orderbook(false);
+
+    // Add an order. We'll capture its ID so we can modify/delete it.
+    orderbook.add_order(100, 100.50, BookSide::bid);
+
+    // Retrieve the bids map and extract the first (and only) order at 100.50
+    const auto& bids = orderbook.get_bids();
+    assert(!bids.empty());
+    assert(bids.at(100.50).size() == 1);
+
+    // Capture the ID of this order
+    uint64_t orderId = bids.at(100.50)[0]->id;
+
+    // ==========================
+    // Time the modify_order call
+    // ==========================
+    uint64_t start_modify = unix_time();
+    bool modified = orderbook.modify_order(orderId, 999);
+    uint64_t end_modify = unix_time();
+
+    // Confirm modify worked
+    assert(modified && "modify_order should return true for a valid ID");
+    assert(bids.at(100.50)[0]->quantity == 999);
+
+    // Print how long modify_order took
+    cout << "modify_order took: " << (end_modify - start_modify) 
+         << " ns" << endl;
+
+    // ==========================
+    // Time the delete_order call
+    // ==========================
+    uint64_t start_delete = unix_time();
+    bool deleted = orderbook.delete_order(orderId);
+    uint64_t end_delete = unix_time();
+
+    // Confirm delete worked
+    assert(deleted && "delete_order should return true for a valid ID");
+
+    // Verify that the order is gone
+    if (bids.find(100.50) != bids.end()) {
+        assert(bids.at(100.50).empty());
+    }
+
+    // Print how long delete_order took
+    cout << "delete_order took: " << (end_delete - start_delete)
+         << " ns" << endl;
+
+    cout << "test_modify_and_delete_order passed!" << endl;
+}
+
 // Main function to run all tests
 int main() {
     test_add_order();
@@ -144,6 +186,7 @@ int main() {
     test_execute_limit_order();
     test_best_quote();
     test_small_market_order_best_ask();
+    test_modify_and_delete_order();
 
     cout << "All tests passed!" << endl;
     return 0;

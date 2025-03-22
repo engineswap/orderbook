@@ -12,12 +12,18 @@
 #include "enums.hpp"
 #include "helpers.hpp"
 
-struct Order{
-    int quantity;       // 4b 
-    BookSide side;      // 4b
-    double price;       // 8b
-    uint64_t timestamp; // 8b
+inline uint64_t generate_unique_id() {
+    static uint64_t s_next_id{0};
+    return ++s_next_id;
+}
+
+struct Order {
+    uint64_t id;
+    int quantity;
+    BookSide side;
+    double price;
+    uint64_t timestamp;
 
     Order(int q, double p, BookSide s, uint64_t t = unix_time())
-        : quantity {q}, price {p}, side {s}, timestamp {t} {}
+        : id(generate_unique_id()), quantity(q), price(p), side(s), timestamp(t) {}
 };

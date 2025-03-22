@@ -27,3 +27,4 @@ void print_fill(std::pair<int, double> fill, int quantity, u_int64_t start_time,
         << fill.second/fill.first << " average price. Time taken: " 
         << (end_time-start_time) << " nano seconds\033[0m" << "\n";
 }
+

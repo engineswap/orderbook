@@ -1,33 +1,53 @@
-# Makefile for a multi-file C++ project with unit tests
-
-# Variables
+# Compiler & Flags
 CC = g++
-CFLAGS = -std=c++17 -O3
+CFLAGS = -std=c++20 -O3
+DEBUG_CFLAGS = -std=c++20 -O0 -g
+
+# Build Mode (release by default, override with `make debug=1`)
+ifeq ($(debug),1)
+	CURRENT_CFLAGS := $(DEBUG_CFLAGS)
+else
+	CURRENT_CFLAGS := $(CFLAGS)
+endif
+
+# Source Files
 SRC = ./src/main.cpp ./src/helpers.cpp ./src/orderbook.cpp
 UNIT_TEST_SRC = ./src/unit_tests.cpp ./src/helpers.cpp ./src/orderbook.cpp
+BENCHMARK_SRC = ./src/benchmark_orderbook.cpp ./src/helpers.cpp ./src/orderbook.cpp
+
+# Object Files
 OBJ = $(SRC:.cpp=.o)
 UNIT_TEST_OBJ = $(UNIT_TEST_SRC:.cpp=.o)
+BENCHMARK_OBJ = $(BENCHMARK_SRC:.cpp=.o)
+
+# Targets
 TARGET = main
 UNIT_TEST_TARGET = unit_tests
+BENCHMARK_TARGET = benchmark_orderbook
 
-# Default target builds both main program and unit tests
-all: $(TARGET) $(UNIT_TEST_TARGET)
+# Default build all
+all: $(TARGET) $(UNIT_TEST_TARGET) $(BENCHMARK_TARGET)
 
-# Linking the main executable
+# Link the main executable
 $(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $(OBJ)
+	$(CC) $(CURRENT_CFLAGS) -o $@ $(OBJ)
 
-# Linking the unit tests executable
+# Link the unit tests executable
 $(UNIT_TEST_TARGET): $(UNIT_TEST_OBJ)
-	$(CC) $(CFLAGS) -o $@ $(UNIT_TEST_OBJ)
+	$(CC) $(CURRENT_CFLAGS) -o $@ $(UNIT_TEST_OBJ)
 
-# Compiling source files
+# Link the benchmark executable
+$(BENCHMARK_TARGET): $(BENCHMARK_OBJ)
+	$(CC) $(CURRENT_CFLAGS) -o $@ $(BENCHMARK_OBJ)
+
+# Compile rule for .o from .cpp
 %.o: %.cpp
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CURRENT_CFLAGS) -c $< -o $@
 
 # Clean up
 clean:
-	rm -f $(OBJ) $(UNIT_TEST_OBJ) $(TARGET) $(UNIT_TEST_TARGET)
+	rm -f $(OBJ) $(UNIT_TEST_OBJ) $(BENCHMARK_OBJ) \
+		  $(TARGET) $(UNIT_TEST_TARGET) $(BENCHMARK_TARGET)
 
-# Phony target to prevent conflicts with file names
+# Phony target to prevent filename conflict
 .PHONY: clean
