@@ -107,7 +107,8 @@ std::pair<int, double> Orderbook::fill_order(map<double, deque<unique_ptr<Order>
             if (orders.empty()){
                 rit = offers.erase(rit);
             }else{
-                ++rit;
+                if (order_quantity > 0) ++rit;
+                else break;
             }
         }else{
             // Prices will only get worse, break

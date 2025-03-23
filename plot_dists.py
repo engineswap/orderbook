@@ -26,7 +26,7 @@ def main():
     # Create a figure with 3 subplots in a row
     fig, axs = plt.subplots(1, 3, figsize=(18, 5))
     
-    bins = 50  # number of histogram bins
+    bins = 100 # number of histogram bins
     
     # Plot market orders histogram
     axs[0].hist(market_times, bins=bins, color='blue', alpha=0.7)
